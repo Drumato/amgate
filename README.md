@@ -2,31 +2,16 @@
 
 **amgate** is a gateway that receives Alertmanager webhooks and triggers actions based on the alerts received.
 
-## Configuration
+## Roadmap
 
-The configuration is done through a ConfigMap. 
-The default name is `amgate-config`.
-The following is an example of a ConfigMap:
+- [x] Base Configuration
+- [ ] Base Actions
+    - [x] Kubernetes Rollout
+    - [ ] Modify K8s manifests and push them to a Git repository
+- [ ] Helm Chart
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: amgate-config
-data:
-  server: |
-    host: "" # all interfaces
-    port: 8080
-  actions: |
-    - matchers:
-      - key: name
-        op: "="
-        value: "alert1"
-      - labels:
-          matchers:
-          - key: severity
-            op: "=~"
-            value: "warning|critical"
-      actor:
-        kind: "rollout"
-```
+## Documents
+
+- [Configuration](docs/configuration.md)
+- [Actions](docs/actions.md)
+- [Framework](docs/framework.md)
