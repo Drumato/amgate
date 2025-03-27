@@ -11,9 +11,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the source code
-COPY . .
+COPY ./main.go ./
+COPY ./pkg ./pkg
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./...
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server .
 
 # Final stage
 FROM gcr.io/distroless/static:nonroot
