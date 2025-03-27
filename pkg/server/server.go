@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/Drumato/amgate/pkg/alertmanager"
 	"github.com/Drumato/amgate/pkg/config"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
@@ -16,11 +18,12 @@ import (
 
 // Server is the main struct for the server
 type Server[T comparable] struct {
-	e             *echo.Echo
-	cfg           *config.Config
-	logger        *slog.Logger
-	CustomDepends *T
-	K8sClient     client.Client
+	e              *echo.Echo
+	cfg            *config.Config
+	logger         *slog.Logger
+	CustomDepends  *T
+	K8sClient      client.Client
+	webhookHandler func(c echo.Context) error
 }
 
 // Start starts the server
@@ -32,6 +35,11 @@ func (s *Server[T]) Start(ctx context.Context) error {
 	}
 	port := lo.If(s.cfg.Server.Port != 0, s.cfg.Server.Port).Else(8080)
 	host := lo.If(s.cfg.Server.Host != "", s.cfg.Server.Host).Else("") // all interfaces
+
+	if s.webhookHandler == nil {
+		s.webhookHandler = s.defaultWebhookHandler
+	}
+	s.e.POST("/webhook", s.webhookHandler)
 
 	go func() {
 		addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
@@ -47,6 +55,19 @@ func (s *Server[T]) Start(ctx context.Context) error {
 	if err := s.e.Shutdown(ctx); err != nil {
 		s.e.Logger.Fatal(err)
 	}
+
+	return nil
+}
+
+func (s *Server[T]) defaultWebhookHandler(c echo.Context) error {
+	defer c.Request().Body.Close()
+
+	payload := alertmanager.WebhookPayload{}
+	if err := json.NewDecoder(c.Request().Body).Decode(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	s.logger.DebugContext(c.Request().Context(), "received webhook payload", slog.Any("payload", payload))
 
 	return nil
 }
@@ -76,5 +97,11 @@ func WithK8sClient[T comparable](k8sClient client.Client) ServerOption[T] {
 func WithLogger[T comparable](logger *slog.Logger) ServerOption[T] {
 	return func(s *Server[T]) {
 		s.logger = logger
+	}
+}
+
+func WithWebhookHandler[T comparable](handler func(c echo.Context) error) ServerOption[T] {
+	return func(s *Server[T]) {
+		s.webhookHandler = handler
 	}
 }

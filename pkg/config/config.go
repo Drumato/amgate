@@ -29,8 +29,9 @@ type ServerConfig struct {
 
 // ActionConfig represents the configuration of an action.
 type ActionConfig struct {
-	Matchers []MatcherConfig `yaml:"matchers"`
-	Actor    ActorConfig     `yaml:"actor"`
+	Matchers []MatcherConfig   `yaml:"matchers"`
+	Name     string            `yaml:"name"`
+	Attrs    map[string]string `yaml:"attrs,omitempty"`
 }
 
 type MatcherConfig struct {
@@ -38,17 +39,14 @@ type MatcherConfig struct {
 	Op    string `yaml:"op"`
 	Value string `yaml:"value"`
 
-	Labels []LabelMatcherConfig `yaml:"labels,omitempty"`
+	Labels            LabelMatcherConfig `yaml:"labels,omitempty"`
+	Annotations       LabelMatcherConfig `yaml:"annotations,omitempty"`
+	CommonLabels      LabelMatcherConfig `yaml:"commonLabels,omitempty"`
+	CommonAnnotations LabelMatcherConfig `yaml:"commonAnnotations,omitempty"`
 }
 
 type LabelMatcherConfig struct {
 	Matchers []MatcherConfig `yaml:"matchers"`
-}
-
-type ActorConfig struct {
-	Kind string `yaml:"kind"`
-	// TODO: rollout strategy
-	CustomAttrs map[string]string `yaml:"custom_attrs,omitempty"`
 }
 
 func LoadFromConfigMap(
