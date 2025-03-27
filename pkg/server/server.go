@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Drumato/amgate/pkg/action"
 	"github.com/Drumato/amgate/pkg/alertmanager"
 	"github.com/Drumato/amgate/pkg/config"
+	"github.com/Drumato/amgate/pkg/dispatcher"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +26,7 @@ type Server[T comparable] struct {
 	CustomDepends  *T
 	K8sClient      client.Client
 	webhookHandler func(c echo.Context) error
+	actions        map[string]action.Action
 }
 
 // Start starts the server
@@ -69,12 +72,51 @@ func (s *Server[T]) defaultWebhookHandler(c echo.Context) error {
 
 	s.logger.DebugContext(c.Request().Context(), "received webhook payload", slog.Any("payload", payload))
 
+	dispatchResults := dispatcher.DispatchEventToActions(s.cfg, payload)
+
+	for _, result := range dispatchResults {
+		s.logger.DebugContext(c.Request().Context(), "dispatch result", slog.Any("result", result))
+
+		actor, ok := s.actions[result.ActionName]
+		if !ok {
+			s.logger.ErrorContext(c.Request().Context(), "action not found", slog.String("action", result.ActionName))
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "action not found"})
+		}
+
+		if err := actor.Run(c.Request().Context(), result); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+	}
+
+	return nil
+}
+
+func (s *Server[T]) AddAction(a action.Action) error {
+	if _, ok := s.actions[a.Name()]; ok {
+		return fmt.Errorf("action with name %s already exists", a.Name())
+	}
+
+	s.actions[a.Name()] = a
 	return nil
 }
 
 // New creates a new server
 func New[T comparable](e *echo.Echo, cfg *config.Config, options ...ServerOption[T]) *Server[T] {
-	return &Server[T]{e: e, cfg: cfg}
+
+	s := Server[T]{e: e, cfg: cfg}
+
+	for _, o := range options {
+		o(&s)
+	}
+
+	// add built-in actions
+	k8sRolloutAction := action.NewK8sRolloutAction(s.logger, s.K8sClient)
+
+	s.actions = map[string]action.Action{
+		k8sRolloutAction.Name(): k8sRolloutAction,
+	}
+
+	return &s
 }
 
 // ServerOption is a function that modifies the server

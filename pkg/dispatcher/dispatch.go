@@ -11,6 +11,7 @@ type DispatchResult struct {
 	// ActionName is the name of the action that was dispatched.
 	ActionName string
 	Alert      DispatchAlert
+	Attrs      map[string]string
 }
 
 type DispatchAlert struct {
@@ -38,16 +39,16 @@ func DispatchEventToActions(
 		for _, action := range cfg.Actions {
 			for _, matcher := range action.Matchers {
 				if !checkLabelMatcherMatchesToAlert(alert.Labels, matcher.Labels) {
-					continue
+					goto nextAction
 				}
 				if !checkLabelMatcherMatchesToAlert(alert.Annotations, matcher.Annotations) {
-					continue
+					goto nextAction
 				}
 				if !checkLabelMatcherMatchesToAlert(payload.CommonLabels, matcher.CommonLabels) {
-					continue
+					goto nextAction
 				}
 				if !checkLabelMatcherMatchesToAlert(payload.CommonAnnotations, matcher.CommonAnnotations) {
-					continue
+					goto nextAction
 				}
 
 				actualValues := map[string]string{
@@ -58,24 +59,27 @@ func DispatchEventToActions(
 					"fingerprint":  alert.Fingerprint,
 				}
 				if !checkMatcherMatchesToAlert(actualValues, matcher) {
-					continue
+					goto nextAction
 				}
-
-				results = append(results, DispatchResult{
-					ActionName: action.Name,
-					Alert: DispatchAlert{
-						Alert:             alert,
-						Version:           payload.Version,
-						GroupKey:          payload.GroupKey,
-						TruncatedAlerts:   payload.TruncatedAlerts,
-						Status:            payload.Status,
-						Receiver:          payload.Receiver,
-						GroupLabels:       payload.GroupLabels,
-						CommonLabels:      payload.CommonLabels,
-						CommonAnnotations: payload.CommonAnnotations,
-					},
-				})
 			}
+
+			results = append(results, DispatchResult{
+				ActionName: action.Name,
+				Alert: DispatchAlert{
+					Alert:             alert,
+					Version:           payload.Version,
+					GroupKey:          payload.GroupKey,
+					TruncatedAlerts:   payload.TruncatedAlerts,
+					Status:            payload.Status,
+					Receiver:          payload.Receiver,
+					GroupLabels:       payload.GroupLabels,
+					CommonLabels:      payload.CommonLabels,
+					CommonAnnotations: payload.CommonAnnotations,
+				},
+				Attrs: action.Attrs,
+			})
+
+		nextAction:
 		}
 	}
 

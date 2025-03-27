@@ -94,7 +94,9 @@ func TestDispatchEventToActions(t *testing.T) {
 				{
 					ActionName: "test",
 					Alert: DispatchAlert{
-						Status: "firing",
+						Alert: alertmanager.Alert{
+							Status: "firing",
+						},
 					},
 				},
 			},
