@@ -62,8 +62,15 @@ func (s *Server[T]) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server[T]) defaultWebhookHandler(c echo.Context) error {
-	defer c.Request().Body.Close()
+func (s *Server[T]) defaultWebhookHandler(c echo.Context) (err error) {
+	defer func() {
+		if closeErr := c.Request().Body.Close(); closeErr != nil {
+			s.logger.ErrorContext(c.Request().Context(), "failed to close request body", slog.String("error", closeErr.Error()))
+			if err == nil {
+				err = closeErr
+			}
+		}
+	}()
 
 	payload := alertmanager.WebhookPayload{}
 	if err := json.NewDecoder(c.Request().Body).Decode(&payload); err != nil {

@@ -42,8 +42,11 @@ func (a *K8sRolloutAction) Run(ctx context.Context, result dispatcher.DispatchRe
 		}
 		patch = client.MergeFrom(deployment.DeepCopy())
 
-		deployment.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/rollout"] = "true"
-		deployment.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
+		if deployment.Spec.Template.Labels == nil {
+			deployment.Spec.Template.Labels = map[string]string{}
+		}
+		deployment.Spec.Template.Labels["amgate.drumato.com/rollout"] = "true"
+		deployment.Spec.Template.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
 		targetObject = &deployment
 	case "StatefulSet":
 		statefulSet := appsv1.StatefulSet{}
@@ -55,8 +58,11 @@ func (a *K8sRolloutAction) Run(ctx context.Context, result dispatcher.DispatchRe
 		}
 		patch = client.MergeFrom(statefulSet.DeepCopy())
 
-		statefulSet.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/rollout"] = "true"
-		statefulSet.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
+		if statefulSet.Spec.Template.Labels == nil {
+			statefulSet.Spec.Template.Labels = map[string]string{}
+		}
+		statefulSet.Spec.Template.Labels["amgate.drumato.com/rollout"] = "true"
+		statefulSet.Spec.Template.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
 
 		targetObject = &statefulSet
 	case "DaemonSet":
@@ -69,8 +75,11 @@ func (a *K8sRolloutAction) Run(ctx context.Context, result dispatcher.DispatchRe
 		}
 		patch = client.MergeFrom(daemonSet.DeepCopy())
 
-		daemonSet.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/rollout"] = "true"
-		daemonSet.Spec.Template.ObjectMeta.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
+		if daemonSet.Spec.Template.Labels == nil {
+			daemonSet.Spec.Template.Labels = map[string]string{}
+		}
+		daemonSet.Spec.Template.Labels["amgate.drumato.com/rollout"] = "true"
+		daemonSet.Spec.Template.Labels["amgate.drumato.com/restart-at"] = time.Now().Format(time.RFC3339)
 
 		targetObject = &daemonSet
 	}

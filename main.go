@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/samber/lo"
-	_ "github.com/samber/lo"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -83,7 +82,11 @@ func NewClient(kubeconfigFilePath string) (client.Client, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		return nil, errors.WithStack(err)
+		k8sClient, err := client.New(cfg, client.Options{})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return k8sClient, nil
 	}
 
 	k8sClient, err := client.New(cfg, client.Options{})
