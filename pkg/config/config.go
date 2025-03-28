@@ -86,3 +86,80 @@ func LoadFromConfigMap(
 
 	return cfg, nil
 }
+
+func (c *Config) ValidateAndDefault() error {
+	if c.Server.Host == "" {
+		c.Server.Host = "0.0.0.0"
+	}
+	if c.Server.Port == 0 {
+		c.Server.Port = 8080
+	}
+
+	for i := range c.Actions {
+		if c.Actions[i].Name == "" {
+			return errors.New("action name is required")
+		}
+
+		for j := range c.Actions[i].Matchers {
+			if err := c.Actions[i].Matchers[j].ValidateAndDefault(); err != nil {
+				return err
+			}
+		}
+		if c.Actions[i].Attrs == nil {
+			c.Actions[i].Attrs = map[string]string{}
+		}
+	}
+
+	return nil
+}
+
+func (m *MatcherConfig) ValidateAndDefault() error {
+	if m.Key == "" {
+		return errors.New("matcher key is required")
+	}
+	if m.Op == "" {
+		return errors.New("matcher op is required")
+	}
+	if m.Op != "=" && m.Op != "!=" && m.Op != "=~" {
+		return errors.New("matcher op must be = or != or =~")
+	}
+	if m.Value == "" {
+		return errors.New("matcher value is required")
+	}
+
+	if m.Labels.Matchers == nil {
+		m.Labels.Matchers = []MatcherConfig{}
+	}
+	if m.Annotations.Matchers == nil {
+		m.Annotations.Matchers = []MatcherConfig{}
+	}
+	if m.CommonLabels.Matchers == nil {
+		m.CommonLabels.Matchers = []MatcherConfig{}
+	}
+	if m.CommonAnnotations.Matchers == nil {
+		m.CommonAnnotations.Matchers = []MatcherConfig{}
+	}
+
+	for _, subM := range m.Labels.Matchers {
+		if err := subM.ValidateAndDefault(); err != nil {
+			return err
+		}
+	}
+	for _, subM := range m.Annotations.Matchers {
+		if err := subM.ValidateAndDefault(); err != nil {
+			return err
+		}
+	}
+	for _, subM := range m.CommonLabels.Matchers {
+		if err := subM.ValidateAndDefault(); err != nil {
+			return err
+		}
+	}
+	for _, subM := range m.CommonAnnotations.Matchers {
+		if err := subM.ValidateAndDefault(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

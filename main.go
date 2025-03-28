@@ -62,6 +62,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := cfg.ValidateAndDefault(); err != nil {
+		logger.ErrorContext(ctx, "failed to validate config", slog.String("error", err.Error()))
+		stop()
+		os.Exit(1)
+	}
+
 	s := server.New(e, &cfg,
 		server.WithK8sClient[struct{}](k8sClient),
 		server.WithLogger[struct{}](logger),
