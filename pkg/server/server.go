@@ -42,6 +42,10 @@ func (s *Server[T]) Start(ctx context.Context) error {
 	if s.webhookHandler == nil {
 		s.webhookHandler = s.defaultWebhookHandler
 	}
+	s.e.GET("/healthz", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
 	s.e.POST("/webhook", s.webhookHandler)
 
 	go func() {
