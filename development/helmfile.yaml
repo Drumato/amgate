@@ -1,0 +1,19 @@
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: drumato
+    url: https://drumato.github.io/helm-charts
+
+releases:
+  - name: kube-prometheus-stack
+    namespace: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    version: 70.3.0
+    values:
+      - prometheus-stack.values.yaml
+  - name: amgate
+    namespace: default
+    chart: drumato/amgate
+    version: 0.1.6
+    values:
+      - amgate.values.yaml
